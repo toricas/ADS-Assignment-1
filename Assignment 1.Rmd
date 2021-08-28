@@ -9,22 +9,159 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(plot.matrix)
+library(pracma)
+library(ggplot2)
+library(reshape)
+library(resample)
 ```
 
-## Including Plots
+## Question 1
 
-You can also embed plots, for example:
+### 1
+```{r}
+TC_1 <- rep(c(rep(1, 15), rep(-1, 15)), 8)[1:240]
+TC_1_s <- (TC_1 - mean(TC_1)) / sd(TC_1)
+plot(TC_1_s, type = "l")
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+TC_2 <- rep(c(rep(-1, 25), rep(1, 20)), 6)[1:240]
+TC_2_s <- (TC_2 - mean(TC_2)) / sd(TC_2)
+plot(TC_2_s, type = "l")
+
+TC_3 <- rep(c(rep(1, 25), rep(-1, 35)), 4)[1:240]
+TC_3_s <- (TC_3 - mean(TC_3)) / sd(TC_3)
+plot(TC_3_s, type = "l")
+
+TC_4 <- rep(c(rep(1, 15), rep(-1, 25)), 6)[1:240]
+TC_4_s <- (TC_4 - mean(TC_4)) / sd(TC_4)
+plot(TC_4_s, type = "l")
+
+TC_5 <- rep(c(rep(1, 20), rep(-1, 20)), 6)[1:240]
+TC_5_s <- (TC_5 - mean(TC_5)) / sd(TC_5)
+plot(TC_5_s, type = "l")
+
+TC_6 <- rep(c(rep(1, 25), rep(-1, 15)), 6)[1:240]
+TC_6_s <- (TC_6 - mean(TC_6)) / sd(TC_6)
+plot(TC_6_s, type = "l")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The reason is that standardizing will show the differences between six subplots much more clear than normalizing.
+
+### 2
+```{r}
+TC <- matrix(c(TC_1_s, TC_2_s, TC_3_s, TC_4_s, TC_5_s, TC_6_s), 240, 6)
+
+CM_TC <- cor(TC)
+
+plot(CM_TC)
+```
+
+1. TC_4_s and TC_5_s have a very strong relationship.
+
+2. TC_5_s and TC_6_s have a very strong relationship.
+
+3. TC_4_s and TC_6_s have a very strong relationship.
+
+### 3
+```{r}
+SM_1 <- matrix(rep(0), 21, 21)
+SM_1[2:6, 2:6] <- 1
+plot(SM_1)
+
+SM_2 <- matrix(rep(0), 21, 21)
+SM_2[2:6, 15:19] <- 1
+plot(SM_2)
+
+SM_3 <- matrix(rep(0), 21, 21)
+SM_3[8:13, 2:6] <- 1
+plot(SM_3)
+
+SM_4 <- matrix(rep(0), 21, 21)
+SM_4[8:13, 15:19] <- 1
+plot(SM_4)
+
+SM_5 <- matrix(rep(0), 21, 21)
+SM_5[15:19, 2:6] <- 1
+plot(SM_5)
+
+SM_6 <- matrix(rep(0), 21, 21)
+SM_6[15:19, 15:19] <- 1
+plot(SM_6)
+
+tmpSM <- array(c(SM_1, SM_2, SM_3, SM_4, SM_5, SM_6), c(21, 21, 6))
+```
+
+```{r}
+SM <- matrix(tmpSM, 6, 441, byrow=T)
+
+CM_SM <- cor(t(SM))
+
+plot(CM_SM)
+```
+
+6 vectored SMs are independent as shown in the CM_SM.
+
+The reason is that each SM has the same mean and variance which means if doing standardization, the values in SMs are still the same as each other. 
+
+### 4
+```{r}
+t <- matrix(rnorm(240*6, mean = 0, sd = sqrt(0.25)), 240 ,6)
+plot(cor(t))
+
+s <- matrix(rnorm(6*441, mean = 0, sd = sqrt(0.015)), 6 ,441)
+plot(cor(t(s)))
+```
+
+For both spatial and temporal noise, they are not correlated across sources.
+
+```{r}
+hist(t, probability = T)
+curve(dnorm(x, mean = 0, sd = sqrt(1.96*0.25)), add = T)
+
+hist(s, probability = T)
+curve(dnorm(x, mean = 0, sd = sqrt(1.96*0.015)), add = T)
+```
+
+Both of them have a normal distribution and  this normal distribution fulfills the mean and variance= 1.96σ criteria relating to 0.25, 0.015, and zero mean.
+
+```{r}
+t_s <- t%*%s
+
+plot(cor(t_s), border = NA)
+```
+
+No,  there is no clear product of t and s correlated across 441 variables.
+
+### 5
+```{r}
+X <- (TC + t)%*%(SM + s)
+
+dim(TC%*%s)
+dim(t%*%SM)
+```
+
+Both products exist. However, for the rest two terms, they will become to the error part of the equation.
+
+```{r}
+ts_100 <- melt(data.frame(n=1:240, X[,sample(1:240, 100, replace = F)]), id.vars = "n")
+
+ggplot(ts_100, aes(x=n, y=value, col=factor(variable))) + geom_line()
+```
+
+```{r}
+plot(colVars(X))
+```
+
+The plot shows that the variances are very close to each other in the starting, middle and end parts between 441 variables. However, for parts between 20 and 120, 300 and 400, the variances are separated. 
+
+```{r}
+X_s <- scale(X)
+```
+
+## Question 2
+
+### 1
+```{r}
+
+```
