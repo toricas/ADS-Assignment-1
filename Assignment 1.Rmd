@@ -15,6 +15,7 @@ library(pracma)
 library(ggplot2)
 library(reshape)
 library(resample)
+library(MASS)
 ```
 
 ## Question 1
@@ -163,5 +164,266 @@ X_s <- scale(X)
 
 ### 1
 ```{r}
+A_LSR <- solve(t(TC)%*%TC, t(TC)%*%X_s)
+D_LSR <- X_s%*%t(A_LSR)
 
+par(mfrow = c(1, 2))
+plot(matrix(A_LSR[1, ], 21, 21), border = NA)
+plot(D_LSR[, 1], type = "l")
+```
+
+```{r}
+plot(D_LSR[, 3], X_s[, 30])
+plot(D_LSR[, 4], X_s[, 30])
+```
+
+The reason is that the increment vector is 60 which is different from each other. At the same time, since there is a very clear relationship which means when TC is used to build the 30th column of X_s and the products are the each row of (TC + t) and 30th column of (SM + s) which is 6X6 for each product, the most important point is that the 30th column of SM is t([0, 0, 1, 0, 0, 0]) which means only the third column of TC is used to compute the 30th column of X_s. Since (TC + t) and (SM + s) are used, so there are some noises.
+
+### 2
+```{r}
+V <- 441
+lamda <- 0.8
+lamda_hat <- lamda * V
+
+I <- diag(1, 6, 6)
+
+A_RR <- solve(t(TC)%*%TC + lamda_hat*I, t(TC)%*%X_s)
+D_RR <- X_s%*%t(A_RR)
+```
+
+```{R}
+correlate <- function(TC, D){
+  cor_vector <- array(0, 6)
+  for (i in 1:ncol(TC)) {
+    cor_vector[i] <- cor(TC[, i], D[, i])
+  }
+  return (cor_vector)
+}
+
+C_TLSR <- correlate(TC, D_LSR)
+C_TLSR
+
+C_TRR <- correlate(TC, D_RR)
+C_TRR
+```
+
+```{r}
+sum(C_TLSR)
+sum(C_TRR)
+```
+
+```{r}
+lamda_2 <- 1000
+lamda_2_hat <- lamda_2 * V
+
+A_RR_2 <- solve(t(TC)%*%TC + lamda_2_hat*I, t(TC)%*%X_s)
+
+plot(A_RR_2[1, ], A_LSR[1, ])
+```
+
+The most values of A_RR_2 in its first vector are very close when the value is 0.
+
+### 3
+```{r}
+rho <- seq(0, 1, 0.05)
+N <- 240
+x1 <- 21
+x2 <- 21
+nsrcs <- 6
+MSE <- array(0, 21)
+
+for (j in 1:length(rho)) {
+  step <- 1/(norm(TC %*% t(TC)) * 1.1)
+  thr <- rho[j]*N*step
+  Ao <- matrix(0, nsrcs, 1)
+  A <- matrix(0, nsrcs, 1)
+  Alr <- matrix(0, nsrcs, x1*x2)
+  mse <- array(0, 10)
+  
+  for (a in 1:10) {
+    t_new <- matrix(rnorm(240*6, mean = 0, sd = sqrt(0.25)), 240 ,6)
+    s_new <- matrix(rnorm(6*441, mean = 0, sd = sqrt(0.015)), 6 ,441)
+    
+    X_new <- scale((TC + t_new)%*%(SM + s_new))
+    
+    for (k in 1:(x1*x2)) {
+      A <- Ao+step*(t(TC) %*% (X_new[,k]-(TC%*%Ao)))
+      A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+    
+      for (i in 1:10) {
+        Ao <- A
+        A <- Ao+step * (t(TC)%*%(X_new[,k]-(TC%*%Ao)))
+        A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+      }
+      Alr[,k] <- A
+    }
+    
+    Dlr <- X_new%*%t(Alr)
+    mse[a] <- sum(sum((X_new-Dlr%*%Alr)^2))/(N*V)
+  }
+  
+  MSE[j] <- mean(mse)
+}
+```
+
+```{r}
+rho
+MSE
+plot(rho, MSE)
+```
+
+When rho is 0.6, MSE is minimum.
+
+It is okay to select this value because it is between 0 to 1.
+
+MSE increases again when rho is 0.65
+
+### 4
+```{r}
+rho_best <- 0.6
+step <- 1/(norm(TC %*% t(TC)) * 1.1)
+thr <- rho_best*N*step
+Ao <- matrix(0, nsrcs, 1)
+A <- matrix(0, nsrcs, 1)
+Alr <- matrix(0, nsrcs, x1*x2)
+
+for (k in 1:(x1*x2)) {
+  A <- Ao+step*(t(TC) %*% (X_s[,k]-(TC%*%Ao)))
+  A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+
+  for (i in 1:10) {
+    Ao <- A
+    A <- Ao+step * (t(TC)%*%(X_s[,k]-(TC%*%Ao)))
+    A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+  }
+  Alr[,k] <- A
+}
+
+Dlr <- X_s%*%t(Alr)
+```
+
+```{r}
+C_TRR <- correlate(TC, D_RR)
+C_TRR
+
+C_SRR <- correlate(t(SM), t(A_RR))
+C_SRR
+
+C_TLR <- correlate(TC, Dlr)
+C_TLR
+
+C_SLR <- correlate(t(SM), t(Alr))
+C_SLR
+```
+
+```{r}
+sum(C_TRR)
+sum(C_SRR)
+sum(C_TLR)
+sum(C_SLR)
+```
+
+```{r}
+plot(cor(t(A_RR), t(Alr)))
+
+plot(cor(D_RR, Dlr))
+```
+
+Due to two different regressions, since the number of parameters are different, so the number of zeros and ones in A are different which makes it false positive.
+
+### 5
+```{r}
+Z <- svd(TC, 6)$u
+E_V <- svd(TC, 6)$v
+
+plot(E_V)
+```
+
+The third PC has the smallest eigen value.
+
+```{r}
+par(mfrow = c(2, 2))
+
+plot(Z[, 1], TC_1)
+plot(TC_1, type = "l")
+
+plot(Z[, 2], TC_2)
+plot(TC_2, type = "l")
+```
+
+```{r}
+par(mfrow = c(2, 2))
+
+plot(Z[, 3], TC_3)
+plot(TC_3, type = "l")
+
+plot(Z[, 4], TC_4)
+plot(TC_4, type = "l")
+```
+
+```{r}
+par(mfrow = c(2, 2))
+
+plot(Z[, 5], TC_5)
+plot(TC_1, type = "l")
+
+plot(Z[, 6], TC_6)
+plot(TC_1, type = "l")
+```
+
+The reason is that some data has lost during calculating PCs.
+
+```{r}
+rho_PCR <- 0.001
+step <- 1/(norm(TC %*% t(TC)) * 1.1)
+thr <- rho_PCR*N*step
+Ao <- matrix(0, nsrcs, 1)
+A <- matrix(0, nsrcs, 1)
+A_PCR <- matrix(0, nsrcs, x1*x2)
+
+for (k in 1:(x1*x2)) {
+  A <- Ao+step*(t(TC) %*% (X_s[,k]-(TC%*%Ao)))
+  A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+
+  for (i in 1:10) {
+    Ao <- A
+    A <- Ao+step * (t(TC)%*%(X_s[,k]-(TC%*%Ao)))
+    A <- (1/(1+thr)) * (sign(A)*pmax(replicate(nsrcs, 0), abs(A)-thr))
+  }
+  A_PCR[,k] <- A
+}
+
+D_PCR <- X_s%*%t(A_PCR)
+```
+
+```{r}
+par(mfrow = c(3, 2))
+
+for (num in 1:6) {
+  plot(D_PCR[num, ], A_PCR[, num])
+}
+```
+
+```{r}
+par(mfrow = c(3, 2))
+
+for (num in 1:6) {
+  plot(D_LSR[num, ], A_LSR[, num])
+}
+```
+
+```{r}
+par(mfrow = c(3, 2))
+
+for (num in 1:6) {
+  plot(D_RR[num, ], A_RR[, num])
+}
+```
+
+```{r}
+par(mfrow = c(3, 2))
+
+for (num in 1:6) {
+  plot(Dlr[num, ], Alr[, num])
+}
 ```
