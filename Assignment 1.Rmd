@@ -24,27 +24,27 @@ library(MASS)
 ```{r}
 par(mfrow = c(3, 2))
 
-TC_1 <- rep(c(rep(1, 15), rep(-1, 15)), 8)[1:240]
+TC_1 <- rep(c(rep(1, 15), rep(0, 15)), 8)[1:240]
 TC_1_s <- (TC_1 - mean(TC_1)) / sd(TC_1)
 plot(TC_1_s, type = "l")
 
-TC_2 <- rep(c(rep(-1, 25), rep(1, 20)), 6)[1:240]
+TC_2 <- rep(c(rep(0, 25), rep(1, 20)), 6)[1:240]
 TC_2_s <- (TC_2 - mean(TC_2)) / sd(TC_2)
 plot(TC_2_s, type = "l")
 
-TC_3 <- rep(c(rep(1, 25), rep(-1, 35)), 4)[1:240]
+TC_3 <- rep(c(rep(1, 25), rep(0, 35)), 4)[1:240]
 TC_3_s <- (TC_3 - mean(TC_3)) / sd(TC_3)
 plot(TC_3_s, type = "l")
 
-TC_4 <- rep(c(rep(1, 15), rep(-1, 25)), 6)[1:240]
+TC_4 <- rep(c(rep(1, 15), rep(0, 25)), 6)[1:240]
 TC_4_s <- (TC_4 - mean(TC_4)) / sd(TC_4)
 plot(TC_4_s, type = "l")
 
-TC_5 <- rep(c(rep(1, 20), rep(-1, 20)), 6)[1:240]
+TC_5 <- rep(c(rep(1, 20), rep(0, 20)), 6)[1:240]
 TC_5_s <- (TC_5 - mean(TC_5)) / sd(TC_5)
 plot(TC_5_s, type = "l")
 
-TC_6 <- rep(c(rep(1, 25), rep(-1, 15)), 6)[1:240]
+TC_6 <- rep(c(rep(1, 25), rep(0, 15)), 6)[1:240]
 TC_6_s <- (TC_6 - mean(TC_6)) / sd(TC_6)
 plot(TC_6_s, type = "l")
 ```
