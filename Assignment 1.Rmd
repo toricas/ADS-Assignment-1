@@ -49,8 +49,6 @@ TC_6_s <- (TC_6 - mean(TC_6)) / sd(TC_6)
 plot(TC_6_s, type = "l")
 ```
 
-The reason is that standardizing will show the differences between six subplots much more clear than normalizing.
-
 ### 2
 ```{r}
 TC <- matrix(c(TC_1_s, TC_2_s, TC_3_s, TC_4_s, TC_5_s, TC_6_s), 240, 6)
@@ -60,14 +58,10 @@ CM_TC <- cor(TC)
 plot(CM_TC)
 ```
 
-1. TC_4_s and TC_5_s have a very strong relationship.
-
-2. TC_5_s and TC_6_s have a very strong relationship.
-
-3. TC_4_s and TC_6_s have a very strong relationship.
-
 ### 3
 ```{r}
+par(mfrow = c(3, 2))
+
 SM_1 <- matrix(rep(0), 21, 21)
 SM_1[2:6, 2:6] <- 1
 plot(SM_1)
@@ -103,10 +97,6 @@ CM_SM <- cor(t(SM))
 plot(CM_SM)
 ```
 
-6 vectored SMs are independent as shown in the CM_SM.
-
-The reason is that each SM has the same mean and variance which means if doing standardization, the values in SMs are still the same as each other. 
-
 ### 4
 ```{r}
 t <- matrix(rnorm(240*6, mean = 0, sd = sqrt(0.25)), 240 ,6)
@@ -116,8 +106,6 @@ s <- matrix(rnorm(6*441, mean = 0, sd = sqrt(0.015)), 6 ,441)
 plot(cor(t(s)))
 ```
 
-For both spatial and temporal noise, they are not correlated across sources.
-
 ```{r}
 hist(t, probability = T)
 curve(dnorm(x, mean = 0, sd = sqrt(1.96*0.25)), add = T)
@@ -126,15 +114,11 @@ hist(s, probability = T)
 curve(dnorm(x, mean = 0, sd = sqrt(1.96*0.015)), add = T)
 ```
 
-Both of them have a normal distribution and  this normal distribution fulfills the mean and variance= 1.96σ criteria relating to 0.25, 0.015, and zero mean.
-
 ```{r}
 t_s <- t%*%s
 
 plot(cor(t_s), border = NA)
 ```
-
-No,  there is no clear product of t and s correlated across 441 variables.
 
 ### 5
 ```{r}
@@ -143,8 +127,6 @@ X <- (TC + t)%*%(SM + s)
 dim(TC%*%s)
 dim(t%*%SM)
 ```
-
-Both products exist. However, for the rest two terms, they will become to the error part of the equation.
 
 ```{r}
 ts_100 <- melt(data.frame(n=1:240, X[,sample(1:240, 100, replace = F)]), id.vars = "n")
@@ -155,8 +137,6 @@ ggplot(ts_100, aes(x=n, y=value, col=factor(variable))) + geom_line()
 ```{r}
 plot(colVars(X))
 ```
-
-The plot shows that the variances are very close to each other in the starting, middle and end parts between 441 variables. However, for parts between 20 and 120, 300 and 400, the variances are separated. 
 
 ```{r}
 X_s <- scale(X)
@@ -223,8 +203,6 @@ A_RR_2 <- solve(t(TC)%*%TC + lamda_2_hat*I, t(TC)%*%X_s)
 plot(A_RR_2[1, ], A_LSR[1, ])
 ```
 
-The most values of A_RR_2 in its first vector are very close when the value is 0.
-
 ### 3
 ```{r}
 rho <- seq(0, 1, 0.05)
@@ -273,12 +251,6 @@ rho
 MSE
 plot(rho, MSE)
 ```
-
-When rho is 0.6, MSE is minimum.
-
-It is okay to select this value because it is between 0 to 1.
-
-MSE increases again when rho is 0.65
 
 ### 4
 ```{r}
@@ -331,8 +303,6 @@ plot(cor(t(A_RR), t(Alr)))
 plot(cor(D_RR, Dlr))
 ```
 
-Due to two different regressions, since the number of parameters are different, so the number of zeros and ones in A are different which makes it false positive.
-
 ### 5
 ```{r}
 Z <- svd(TC, 6)$u
@@ -340,8 +310,6 @@ E_V <- svd(TC, 6)$v
 
 plot(E_V)
 ```
-
-The third PC has the smallest eigen value.
 
 ```{r}
 par(mfrow = c(2, 2))
@@ -367,13 +335,11 @@ plot(TC_4, type = "l")
 par(mfrow = c(2, 2))
 
 plot(Z[, 5], TC_5)
-plot(TC_1, type = "l")
+plot(TC_5, type = "l")
 
 plot(Z[, 6], TC_6)
-plot(TC_1, type = "l")
+plot(TC_6, type = "l")
 ```
-
-The reason is that some data has lost during calculating PCs.
 
 ```{r}
 rho_PCR <- 0.001
@@ -429,5 +395,3 @@ for (num in 1:6) {
   plot(Dlr[num, ], Alr[, num])
 }
 ```
-
-The reason is that using PCR will lose some data of original which means the regression will not be so accurate.
